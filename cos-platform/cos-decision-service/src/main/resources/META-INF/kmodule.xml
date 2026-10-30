@@ -1,5 +1,26 @@
 <kmodule xmlns="http://www.drools.org/xsd/kmodule">
-  <kbase name="cosDecisionKBase" default="true" packages="com.cos.decision.rules.generated">
-    <ksession name="cosDecisionKSession" default="true" type="stateful"/>
+  <!--
+    Two separate KieBases, each scoped to its own package. This is deliberate, not incidental:
+    with everything in one shared KieBase, inserting a plain Party fact into a Party-scope
+    session (where Party.decisions is still null) would also activate the Application-scope
+    rules' "Party(decisions.creditEligibility == ...)" alpha-node constraints against it and
+    NullPointerException - Drools evaluates every rule loaded into a KieBase against every
+    matching-type fact inserted into any session built from it, regardless of which session the
+    rule was "meant" for.
+  -->
+  <kbase name="partyKBase" packages="com.cos.decision.rules.party">
+    <ksession name="partyKSession" type="stateful"/>
+  </kbase>
+  <kbase name="applicationKBase" packages="com.cos.decision.rules.application">
+    <ksession name="applicationKSession" type="stateful"/>
+  </kbase>
+  <!--
+    Application Routing is deliberately its own KieBase, run in its own session strictly AFTER
+    Affordability/Credit Eligibility (App) have finished and their results are fixed - see the
+    long comment above PARTY_PACKAGE in generate_decision_tables.py for why interleaving it with
+    those tables in one session produced non-deterministic routing results.
+  -->
+  <kbase name="routingKBase" packages="com.cos.decision.rules.routing">
+    <ksession name="routingKSession" type="stateful"/>
   </kbase>
 </kmodule>

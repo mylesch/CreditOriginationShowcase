@@ -77,6 +77,13 @@ def write_table(path, package, imports, table_name, columns, rules, activation_g
                 value = activation_group
             else:
                 value = rule_row[ci] if ci < len(rule_row) else None
+                if col["kind"] == "name" and value is not None:
+                    # Drools rule names must be unique within a package, not just within a
+                    # sheet - every decision table in this project shares one package, so the
+                    # table name is always prefixed to guarantee no cross-table collisions
+                    # (e.g. "Credit decline" appearing in both Party Credit Eligibility and
+                    # Application Routing).
+                    value = f"{table_name}: {value}"
             if value is not None and value != "":
                 ws.cell(row=r, column=c, value=value)
 
