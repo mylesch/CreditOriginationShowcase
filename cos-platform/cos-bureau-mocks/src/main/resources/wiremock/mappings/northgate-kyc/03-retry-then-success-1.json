@@ -1,0 +1,16 @@
+{
+  "priority": 1,
+  "scenarioName": "northgate-kyc-retry",
+  "requiredScenarioState": "Started",
+  "newScenarioState": "ATTEMPT_2",
+  "request": {
+    "method": "POST",
+    "urlPath": "/v1/individuals/verify",
+    "headers": {"X-Test-Scenario": {"equalTo": "retry-then-success"}}
+  },
+  "response": {
+    "status": 503,
+    "headers": {"Content-Type": "application/json"},
+    "jsonBody": {"errors": [{"code": "503", "title": "Service temporarily unavailable"}]}
+  }
+}

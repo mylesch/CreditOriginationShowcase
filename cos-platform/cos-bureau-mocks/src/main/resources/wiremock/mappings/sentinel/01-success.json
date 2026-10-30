@@ -1,0 +1,20 @@
+{
+  "priority": 10,
+  "request": {
+    "method": "POST",
+    "urlPath": "/v1/screen"
+  },
+  "response": {
+    "status": 200,
+    "headers": {"Content-Type": "application/json"},
+    "jsonBody": {
+      "reference": "{{jsonPath request.body '$.reference'}}",
+      "screenedOn": "{{now}}",
+      "matches": [],
+      "overallMatch": false,
+      "status": "COMPLETE",
+      "error": null
+    },
+    "transformers": ["response-template"]
+  }
+}

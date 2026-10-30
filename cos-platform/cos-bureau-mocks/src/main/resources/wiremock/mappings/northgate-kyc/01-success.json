@@ -1,0 +1,27 @@
+{
+  "priority": 10,
+  "request": {
+    "method": "POST",
+    "urlPath": "/v1/individuals/verify"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "requestId": "{{jsonPath request.body '$.requestId'}}",
+      "status": "COMPLETED",
+      "result": {
+        "matchOutcome": "MATCH",
+        "matchConfidence": 97.5,
+        "matchedFields": ["firstName", "lastName", "dateOfBirth", "identificationNumber"],
+        "identificationStatus": "VALID",
+        "watchlistChecked": false
+      },
+      "subjectReference": "NG-SUBJ-{{randomValue length=8 type='ALPHANUMERIC'}}",
+      "generatedOn": "{{now}}"
+    },
+    "transformers": ["response-template"]
+  }
+}

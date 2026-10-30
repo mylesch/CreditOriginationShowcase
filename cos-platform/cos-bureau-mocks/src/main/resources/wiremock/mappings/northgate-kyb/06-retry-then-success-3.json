@@ -1,0 +1,21 @@
+{
+  "priority": 1,
+  "scenarioName": "northgate-kyb-retry",
+  "requiredScenarioState": "ATTEMPT_3",
+  "request": {
+    "method": "POST",
+    "urlPath": "/v1/companies/verify",
+    "headers": {"X-Test-Scenario": {"equalTo": "retry-then-success"}}
+  },
+  "response": {
+    "status": 200,
+    "headers": {"Content-Type": "application/json"},
+    "jsonBody": {
+      "requestId": "{{jsonPath request.body '$.requestId'}}",
+      "status": "COMPLETED",
+      "result": {"matchOutcome": "MATCH", "matchConfidence": 97.5, "registrationStatus": "ACTIVE"},
+      "generatedOn": "{{now}}"
+    },
+    "transformers": ["response-template"]
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "priority": 1,
+  "scenarioName": "sentinel-retry",
+  "requiredScenarioState": "ATTEMPT_3",
+  "request": {
+    "method": "POST",
+    "urlPath": "/v1/screen",
+    "headers": {"X-Test-Scenario": {"equalTo": "retry-then-success"}}
+  },
+  "response": {
+    "status": 200,
+    "headers": {"Content-Type": "application/json"},
+    "jsonBody": {
+      "reference": "{{jsonPath request.body '$.reference'}}",
+      "screenedOn": "{{now}}",
+      "matches": [],
+      "overallMatch": false,
+      "status": "COMPLETE",
+      "error": null
+    },
+    "transformers": ["response-template"]
+  }
+}

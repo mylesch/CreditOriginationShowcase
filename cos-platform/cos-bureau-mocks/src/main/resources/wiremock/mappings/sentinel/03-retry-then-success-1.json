@@ -1,0 +1,12 @@
+{
+  "priority": 1,
+  "scenarioName": "sentinel-retry",
+  "requiredScenarioState": "Started",
+  "newScenarioState": "ATTEMPT_2",
+  "request": {
+    "method": "POST",
+    "urlPath": "/v1/screen",
+    "headers": {"X-Test-Scenario": {"equalTo": "retry-then-success"}}
+  },
+  "response": {"status": 503, "jsonBody": {"errors": [{"code": "503", "title": "Service temporarily unavailable"}]}}
+}

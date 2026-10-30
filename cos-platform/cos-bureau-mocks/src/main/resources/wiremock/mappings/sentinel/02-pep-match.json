@@ -1,0 +1,25 @@
+{
+  "priority": 1,
+  "request": {
+    "method": "POST",
+    "urlPath": "/v1/screen",
+    "bodyPatterns": [
+      {"matchesJsonPath": {"expression": "$.subject.fullName", "equalTo": "PEP Match Subject"}}
+    ]
+  },
+  "response": {
+    "status": 200,
+    "headers": {"Content-Type": "application/json"},
+    "jsonBody": {
+      "reference": "{{jsonPath request.body '$.reference'}}",
+      "screenedOn": "{{now}}",
+      "matches": [
+        {"list": "PEP", "matchScore": 88.0, "matchedName": "PEP Match Subject", "category": "Domestic PEP"}
+      ],
+      "overallMatch": true,
+      "status": "COMPLETE",
+      "error": null
+    },
+    "transformers": ["response-template"]
+  }
+}

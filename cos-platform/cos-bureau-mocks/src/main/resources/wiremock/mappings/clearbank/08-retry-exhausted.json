@@ -1,0 +1,9 @@
+{
+  "priority": 1,
+  "request": {
+    "method": "POST",
+    "urlPath": "/v1/account-checks",
+    "headers": {"X-Test-Scenario": {"equalTo": "retry-exhausted"}}
+  },
+  "response": {"status": 503, "jsonBody": {"errors": [{"code": "503", "title": "Service temporarily unavailable"}]}}
+}

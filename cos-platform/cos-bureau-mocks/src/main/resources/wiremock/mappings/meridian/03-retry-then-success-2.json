@@ -1,0 +1,23 @@
+{
+  "priority": 1,
+  "scenarioName": "meridian-retry",
+  "requiredScenarioState": "ATTEMPT_2",
+  "request": {
+    "method": "POST",
+    "urlPath": "/v2/credit-reports",
+    "headers": {"X-Test-Scenario": {"equalTo": "retry-then-success"}}
+  },
+  "response": {
+    "status": 200,
+    "headers": {"Content-Type": "application/json"},
+    "jsonBody": {
+      "reference": "{{jsonPath request.body '$.reference'}}",
+      "reportDate": "{{now format='yyyy-MM-dd'}}",
+      "recordFound": true,
+      "score": {"value": 712, "scaleMin": 300, "scaleMax": 850, "scoreVersion": "MB-CS-4"},
+      "liabilities": [],
+      "status": "COMPLETE"
+    },
+    "transformers": ["response-template"]
+  }
+}

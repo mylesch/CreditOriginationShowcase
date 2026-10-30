@@ -1,0 +1,28 @@
+{
+  "priority": 1,
+  "request": {
+    "method": "POST",
+    "urlPath": "/v1/individuals/verify",
+    "bodyPatterns": [
+      {"matchesJsonPath": {"expression": "$.subject.identification.number", "equalTo": "NOMATCH0001"}}
+    ]
+  },
+  "response": {
+    "status": 200,
+    "headers": {"Content-Type": "application/json"},
+    "jsonBody": {
+      "requestId": "{{jsonPath request.body '$.requestId'}}",
+      "status": "COMPLETED",
+      "result": {
+        "matchOutcome": "NO_MATCH",
+        "matchConfidence": 12.0,
+        "matchedFields": [],
+        "identificationStatus": "INVALID",
+        "watchlistChecked": false
+      },
+      "subjectReference": "NG-SUBJ-{{randomValue length=8 type='ALPHANUMERIC'}}",
+      "generatedOn": "{{now}}"
+    },
+    "transformers": ["response-template"]
+  }
+}

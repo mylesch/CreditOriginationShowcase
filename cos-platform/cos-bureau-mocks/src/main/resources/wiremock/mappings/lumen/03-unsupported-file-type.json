@@ -1,0 +1,12 @@
+{
+  "priority": 1,
+  "request": {
+    "method": "POST",
+    "urlPath": "/v1/documents/analyze",
+    "headers": {"X-Test-Scenario": {"equalTo": "unsupported-file-type"}}
+  },
+  "response": {
+    "status": 415,
+    "jsonBody": {"errors": [{"code": "415", "title": "Unsupported file type at documentUrl"}]}
+  }
+}

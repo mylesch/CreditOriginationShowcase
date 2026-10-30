@@ -1,0 +1,25 @@
+{
+  "priority": 1,
+  "request": {
+    "method": "POST",
+    "urlPath": "/v1/account-checks",
+    "bodyPatterns": [
+      {"matchesJsonPath": {"expression": "$.accountNumber", "equalTo": "BC05-ACCT"}}
+    ]
+  },
+  "response": {
+    "status": 200,
+    "headers": {"Content-Type": "application/json"},
+    "jsonBody": {
+      "reference": "{{jsonPath request.body '$.reference'}}",
+      "resultCode": "BC05",
+      "resultDescription": "Owner mismatch",
+      "accountStatus": "OPEN",
+      "ownerNameMatchScore": 8.0,
+      "checkedOn": "{{now}}",
+      "status": "COMPLETE",
+      "error": null
+    },
+    "transformers": ["response-template"]
+  }
+}

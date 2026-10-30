@@ -1,0 +1,22 @@
+{
+  "priority": 10,
+  "request": {
+    "method": "POST",
+    "urlPath": "/v1/account-checks"
+  },
+  "response": {
+    "status": 200,
+    "headers": {"Content-Type": "application/json"},
+    "jsonBody": {
+      "reference": "{{jsonPath request.body '$.reference'}}",
+      "resultCode": "BC01",
+      "resultDescription": "Full match",
+      "accountStatus": "OPEN",
+      "ownerNameMatchScore": 99.0,
+      "checkedOn": "{{now}}",
+      "status": "COMPLETE",
+      "error": null
+    },
+    "transformers": ["response-template"]
+  }
+}

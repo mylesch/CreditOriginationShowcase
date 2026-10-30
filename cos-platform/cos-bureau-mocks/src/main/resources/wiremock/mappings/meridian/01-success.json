@@ -1,0 +1,25 @@
+{
+  "priority": 10,
+  "request": {
+    "method": "POST",
+    "urlPath": "/v2/credit-reports"
+  },
+  "response": {
+    "status": 200,
+    "headers": {"Content-Type": "application/json"},
+    "jsonBody": {
+      "reference": "{{jsonPath request.body '$.reference'}}",
+      "reportDate": "{{now format='yyyy-MM-dd'}}",
+      "recordFound": true,
+      "score": {"value": 712, "scaleMin": 300, "scaleMax": 850, "scoreVersion": "MB-CS-4"},
+      "liabilities": [
+        {"accountRef": "LIA-{{randomValue length=6 type='ALPHANUMERIC'}}", "category": "UnsecuredLoan",
+         "balance": 1200.0, "limit": 5000.0, "monthlyRepayment": 150.0, "arrearsAmount": 0.0,
+         "isJointAccount": false, "startDate": "2021-05-01"}
+      ],
+      "tradingHistoryMonths": 48,
+      "status": "COMPLETE"
+    },
+    "transformers": ["response-template"]
+  }
+}

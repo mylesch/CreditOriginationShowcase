@@ -1,0 +1,13 @@
+{
+  "priority": 1,
+  "request": {
+    "method": "POST",
+    "urlPath": "/v1/individuals/verify",
+    "headers": {"X-Test-Scenario": {"equalTo": "retry-exhausted"}}
+  },
+  "response": {
+    "status": 503,
+    "headers": {"Content-Type": "application/json"},
+    "jsonBody": {"errors": [{"code": "503", "title": "Service temporarily unavailable"}]}
+  }
+}

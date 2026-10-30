@@ -1,0 +1,25 @@
+{
+  "priority": 1,
+  "request": {
+    "method": "POST",
+    "urlPath": "/v1/account-checks",
+    "bodyPatterns": [
+      {"matchesJsonPath": {"expression": "$.accountNumber", "equalTo": "BC04-ACCT"}}
+    ]
+  },
+  "response": {
+    "status": 200,
+    "headers": {"Content-Type": "application/json"},
+    "jsonBody": {
+      "reference": "{{jsonPath request.body '$.reference'}}",
+      "resultCode": "BC04",
+      "resultDescription": "Account not found",
+      "accountStatus": "NOT_FOUND",
+      "ownerNameMatchScore": 0.0,
+      "checkedOn": "{{now}}",
+      "status": "COMPLETE",
+      "error": null
+    },
+    "transformers": ["response-template"]
+  }
+}

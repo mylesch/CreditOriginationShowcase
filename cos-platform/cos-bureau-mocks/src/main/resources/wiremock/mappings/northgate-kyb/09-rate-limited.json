@@ -1,0 +1,13 @@
+{
+  "priority": 1,
+  "request": {
+    "method": "POST",
+    "urlPath": "/v1/companies/verify",
+    "headers": {"X-Test-Scenario": {"equalTo": "rate-limited"}}
+  },
+  "response": {
+    "status": 429,
+    "headers": {"Retry-After": "2"},
+    "jsonBody": {"errors": [{"code": "429", "title": "Rate limit exceeded"}]}
+  }
+}

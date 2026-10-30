@@ -2,3 +2,4 @@ rootProject.name = 'cos-platform'
 
 include 'cos-domain'
 include 'cos-decision-service'
+include 'cos-bureau-mocks'

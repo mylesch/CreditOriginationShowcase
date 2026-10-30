@@ -1,0 +1,9 @@
+{
+  "priority": 1,
+  "request": {
+    "method": "POST",
+    "urlPath": "/v1/account-checks",
+    "headers": {"X-Test-Scenario": {"equalTo": "timeout"}}
+  },
+  "response": {"status": 200, "fixedDelayMilliseconds": 8000, "jsonBody": {"status": "COMPLETE"}}
+}

@@ -1,0 +1,30 @@
+{
+  "priority": 1,
+  "request": {
+    "method": "POST",
+    "urlPath": "/v1/documents/analyze",
+    "bodyPatterns": [
+      {"matchesJsonPath": {"expression": "$.documentId", "equalTo": "LOWCONF-DOC"}}
+    ]
+  },
+  "response": {
+    "status": 200,
+    "headers": {"Content-Type": "application/json"},
+    "jsonBody": {
+      "documentId": "{{jsonPath request.body '$.documentId'}}",
+      "classification": {"documentType": "BankStatement", "confidence": 0.42},
+      "extractedFields": {
+        "fullName": "Jane Doe",
+        "idNumber": null,
+        "incomeAmount": null,
+        "incomeDate": null,
+        "address": null
+      },
+      "qualityFlags": ["LOW_RESOLUTION"],
+      "processedOn": "{{now}}",
+      "status": "COMPLETE",
+      "error": null
+    },
+    "transformers": ["response-template"]
+  }
+}

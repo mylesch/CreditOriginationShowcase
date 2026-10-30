@@ -1,0 +1,21 @@
+{
+  "priority": 1,
+  "request": {
+    "method": "POST",
+    "urlPath": "/v1/companies/verify",
+    "bodyPatterns": [
+      {"matchesJsonPath": {"expression": "$.subject.registrationNumber", "equalTo": "NOMATCH-REG"}}
+    ]
+  },
+  "response": {
+    "status": 200,
+    "headers": {"Content-Type": "application/json"},
+    "jsonBody": {
+      "requestId": "{{jsonPath request.body '$.requestId'}}",
+      "status": "COMPLETED",
+      "result": {"matchOutcome": "NO_MATCH", "matchConfidence": 10.0, "registrationStatus": "ACTIVE"},
+      "generatedOn": "{{now}}"
+    },
+    "transformers": ["response-template"]
+  }
+}

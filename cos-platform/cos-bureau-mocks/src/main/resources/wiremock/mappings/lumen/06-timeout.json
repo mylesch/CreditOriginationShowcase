@@ -1,0 +1,9 @@
+{
+  "priority": 1,
+  "request": {
+    "method": "POST",
+    "urlPath": "/v1/documents/analyze",
+    "headers": {"X-Test-Scenario": {"equalTo": "timeout"}}
+  },
+  "response": {"status": 200, "fixedDelayMilliseconds": 21000, "jsonBody": {"status": "COMPLETE"}}
+}

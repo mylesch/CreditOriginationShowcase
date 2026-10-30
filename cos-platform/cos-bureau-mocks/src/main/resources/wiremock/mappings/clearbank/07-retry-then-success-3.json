@@ -1,0 +1,25 @@
+{
+  "priority": 1,
+  "scenarioName": "clearbank-retry",
+  "requiredScenarioState": "ATTEMPT_3",
+  "request": {
+    "method": "POST",
+    "urlPath": "/v1/account-checks",
+    "headers": {"X-Test-Scenario": {"equalTo": "retry-then-success"}}
+  },
+  "response": {
+    "status": 200,
+    "headers": {"Content-Type": "application/json"},
+    "jsonBody": {
+      "reference": "{{jsonPath request.body '$.reference'}}",
+      "resultCode": "BC01",
+      "resultDescription": "Full match",
+      "accountStatus": "OPEN",
+      "ownerNameMatchScore": 99.0,
+      "checkedOn": "{{now}}",
+      "status": "COMPLETE",
+      "error": null
+    },
+    "transformers": ["response-template"]
+  }
+}

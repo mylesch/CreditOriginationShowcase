@@ -1,0 +1,12 @@
+{
+  "priority": 1,
+  "request": {
+    "method": "POST",
+    "urlPath": "/v2/credit-reports",
+    "headers": {"X-Test-Scenario": {"equalTo": "non-retryable-error"}}
+  },
+  "response": {
+    "status": 500,
+    "jsonBody": {"errors": [{"code": "500", "title": "Internal error - Meridian fails closed on this, no retry"}]}
+  }
+}

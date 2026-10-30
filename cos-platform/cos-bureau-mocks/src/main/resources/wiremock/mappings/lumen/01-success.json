@@ -1,0 +1,27 @@
+{
+  "priority": 10,
+  "request": {
+    "method": "POST",
+    "urlPath": "/v1/documents/analyze"
+  },
+  "response": {
+    "status": 200,
+    "headers": {"Content-Type": "application/json"},
+    "jsonBody": {
+      "documentId": "{{jsonPath request.body '$.documentId'}}",
+      "classification": {"documentType": "Payslip", "confidence": 0.97},
+      "extractedFields": {
+        "fullName": "Jane Doe",
+        "idNumber": "8001015009087",
+        "incomeAmount": 1500.0,
+        "incomeDate": "2026-09-30",
+        "address": "1 Example Street, Sampleton"
+      },
+      "qualityFlags": [],
+      "processedOn": "{{now}}",
+      "status": "COMPLETE",
+      "error": null
+    },
+    "transformers": ["response-template"]
+  }
+}

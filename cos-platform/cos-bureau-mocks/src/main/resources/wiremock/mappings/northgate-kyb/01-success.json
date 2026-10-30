@@ -1,0 +1,31 @@
+{
+  "priority": 10,
+  "request": {
+    "method": "POST",
+    "urlPath": "/v1/companies/verify"
+  },
+  "response": {
+    "status": 200,
+    "headers": {"Content-Type": "application/json"},
+    "jsonBody": {
+      "requestId": "{{jsonPath request.body '$.requestId'}}",
+      "status": "COMPLETED",
+      "result": {
+        "matchOutcome": "MATCH",
+        "matchConfidence": 97.5,
+        "registrationStatus": "ACTIVE",
+        "incorporationDate": "2015-03-01",
+        "directors": [
+          {"firstName": "Rep", "lastName": "Resentative", "dateOfBirth": "1980-01-01", "identificationNumber": "REP-001", "role": "Director"}
+        ],
+        "beneficialOwners": [
+          {"firstName": "Rep", "lastName": "Resentative", "ownershipPercentage": 60.0}
+        ],
+        "representativeAuthorityConfirmed": true
+      },
+      "generatedOn": "{{now}}",
+      "error": null
+    },
+    "transformers": ["response-template"]
+  }
+}
