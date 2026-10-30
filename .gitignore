@@ -1,0 +1,13 @@
+# Third-party example specs used only as reference material - not part of this project's deliverables
+/Example Spec/
+
+# Office lock files (LibreOffice / Excel)
+.~lock.*#
+~$*.xlsx
+~$*.xls
+~$*.docx
+~$*.pptx
+
+# OS cruft
+.DS_Store
+Thumbs.db
