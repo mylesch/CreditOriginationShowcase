@@ -16,3 +16,7 @@ Thumbs.db
 cos-platform/.gradle/
 cos-platform/**/build/
 cos-platform/build/
+
+# Python cache from the decision-table generator scripts
+__pycache__/
+*.pyc

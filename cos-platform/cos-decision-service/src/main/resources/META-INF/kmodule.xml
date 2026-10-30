@@ -1,0 +1,5 @@
+<kmodule xmlns="http://www.drools.org/xsd/kmodule">
+  <kbase name="cosDecisionKBase" default="true" packages="com.cos.decision.rules.generated">
+    <ksession name="cosDecisionKSession" default="true" type="stateful"/>
+  </kbase>
+</kmodule>
