@@ -11,3 +11,8 @@
 # OS cruft
 .DS_Store
 Thumbs.db
+
+# Gradle build output (cos-platform)
+cos-platform/.gradle/
+cos-platform/**/build/
+cos-platform/build/

@@ -1,0 +1,3 @@
+rootProject.name = 'cos-platform'
+
+include 'cos-domain'
