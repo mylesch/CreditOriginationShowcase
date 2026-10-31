@@ -1,0 +1,45 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.5.3'
+    id 'io.spring.dependency-management' version '1.1.7'
+}
+
+dependencies {
+    implementation project(':cos-domain')
+
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+
+    testImplementation project(':cos-decision-service')
+    testImplementation project(':cos-bureau-mocks')
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+
+// Spring Boot's dependency-management BOM forces jetty-server etc. up to 12.x project-wide,
+// which breaks WireMock's bundled Jetty-11 HttpServerFactory (ServiceLoader finds nothing).
+// Override the managed version back to the Jetty 11 line WireMock actually needs - a plain
+// resolutionStrategy.force isn't enough against this plugin's own BOM-import mechanism.
+dependencyManagement {
+    dependencies {
+        dependencySet(group: 'org.eclipse.jetty', version: '11.0.24') {
+            entry 'jetty-server'
+            entry 'jetty-servlet'
+            entry 'jetty-servlets'
+            entry 'jetty-webapp'
+            entry 'jetty-http'
+            entry 'jetty-io'
+            entry 'jetty-client'
+            entry 'jetty-security'
+            entry 'jetty-util'
+            entry 'jetty-xml'
+        }
+        dependencySet(group: 'org.eclipse.jetty.http2', version: '11.0.24') {
+            entry 'http2-server'
+            entry 'http2-common'
+            entry 'http2-hpack'
+        }
+    }
+}

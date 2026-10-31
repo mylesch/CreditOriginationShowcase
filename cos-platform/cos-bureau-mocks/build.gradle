@@ -1,12 +1,14 @@
 plugins {
-    id 'java'
+    id 'java-library'
     id 'application'
 }
 
 def wiremockVersion = '3.13.1'
 
 dependencies {
-    implementation "org.wiremock:wiremock:${wiremockVersion}"
+    // api, not implementation: BureauMockServer.create() returns WireMockServer, so this is
+    // part of the module's public contract (consumed directly by cos-orchestration's tests).
+    api "org.wiremock:wiremock:${wiremockVersion}"
 
     testImplementation 'org.junit.jupiter:junit-jupiter:5.11.0'
     testImplementation 'com.fasterxml.jackson.core:jackson-databind:2.17.2'
