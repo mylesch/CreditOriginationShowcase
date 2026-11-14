@@ -1,0 +1,779 @@
+{
+  "info": {
+    "_postman_id": "229a510c-9254-437f-a7bd-0e9f32175233",
+    "name": "COS Platform API (Credit Origination Showcase)",
+    "description": "Demonstrates the REST contract of the three runnable Spring Boot / WireMock services in cos-platform:\n\n- **cos-decision-service** (DRS) \u2014 `POST /v1/applications/evaluate`, port 8081\n- **cos-orchestration** \u2014 `POST /v1/applications/originate`, port 8082 (the public-facing origination API; calls DRS and the bureau mocks itself)\n- **cos-bureau-mocks** \u2014 WireMock stubs for all 6 bureaus from the Integration Workbook, port 9561 (normally called by cos-orchestration, exposed here too so you can poke each bureau contract directly)\n\nEvery request body/assertion in this collection is lifted directly from an existing passing test (DecisionControllerTest, PartyRuleEngineTest, OrchestrationEndToEndTest, or a wiremock/mappings/*.json stub) rather than guessed, so a green run here is a real signal.\n\nSet `JAVA_HOME` to the project's JDK 21 first (see repo memory / README), then from `cos-platform/`:\n```\n./gradlew :cos-bureau-mocks:run      # or run BureauMockServer's main() from your IDE\n./gradlew :cos-decision-service:bootRun\n./gradlew :cos-orchestration:bootRun\n```\nThe \"cos-decision-service\" folder only needs DRS running. The \"cos-bureau-mocks\" folder only needs the mocks running. The \"cos-orchestration\" folder's valid-origination request needs all three; its invalid-payload request needs only orchestration itself.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "decisionServiceBaseUrl",
+      "value": "http://localhost:8081",
+      "type": "string"
+    },
+    {
+      "key": "orchestrationBaseUrl",
+      "value": "http://localhost:8082",
+      "type": "string"
+    },
+    {
+      "key": "bureauMocksBaseUrl",
+      "value": "http://localhost:9561",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "cos-decision-service (DRS)",
+      "item": [
+        {
+          "name": "Evaluate \u2014 Compliance screening clean (PEPs pass)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{decisionServiceBaseUrl}}/v1/applications/evaluate",
+              "host": [
+                "{{decisionServiceBaseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "applications",
+                "evaluate"
+              ]
+            },
+            "description": "Minimal example of the Call-DRS contract: a single Compliance bureau response with isPEPsMatch=false. DRS computes Party.decisions.customerPEPsStatus from it. Mirrors DecisionControllerTest#evaluateReturnsPartyDecisions, so the assertion below is verified against the real engine, not guessed.\n\nRun standalone: `./gradlew :cos-decision-service:bootRun` (listens on :8081).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"applicationId\": \"APP-1\",\n  \"parties\": [\n    {\n      \"partyId\": \"P1\",\n      \"partyType\": \"Consumer\",\n      \"bureauResponses\": [\n        {\n          \"bureauResponseId\": \"BR-1\",\n          \"checkType\": \"Compliance\",\n          \"isPEPsMatch\": false\n        }\n      ]\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('PEPs status resolves to APPROVE', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.parties[0].decisions.customerPEPsStatus).to.eql('APPROVE');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Evaluate \u2014 KYC + credit + compliance all clean (party credit eligibility APPROVE)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{decisionServiceBaseUrl}}/v1/applications/evaluate",
+              "host": [
+                "{{decisionServiceBaseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "applications",
+                "evaluate"
+              ]
+            },
+            "description": "Richer example touching 3 of the 6 bureau check types DRS reasons over: KYC (identity match + confidence), ConsumerCredit (bureau score band) and Compliance (PEPs). With no manual override, a confident identity match, a score of 800 and no PEPs match, Party.decisions.creditEligibility resolves to APPROVE. Mirrors PartyRuleEngineTest#partyCreditEligibility_noOverride_allCleanApproves.\n\nNote: DRS recomputes every Party.decisions field from the raw facts you send (bureauResponses, person, identifications, manual*Decision) \u2014 whatever you put under `decisions` on the way in is ignored and overwritten on the way out.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"applicationId\": \"APP-2\",\n  \"requestType\": \"CREDIT_CHECK\",\n  \"isCancelled\": false,\n  \"manualCreditDecision\": \"NONE\",\n  \"productRequests\": [\n    {\n      \"productRequestId\": \"PR-1\",\n      \"requestedAmount\": 5000,\n      \"termMonths\": 12\n    }\n  ],\n  \"parties\": [\n    {\n      \"partyId\": \"P1\",\n      \"partyType\": \"Consumer\",\n      \"identifications\": [\n        {\n          \"identificationId\": \"I1\",\n          \"expiresOn\": \"2030-01-01\"\n        }\n      ],\n      \"bureauResponses\": [\n        {\n          \"bureauResponseId\": \"BR-KYC\",\n          \"checkType\": \"KYC\",\n          \"isIdentityMatch\": true,\n          \"identityMatchConfidence\": 97\n        },\n        {\n          \"bureauResponseId\": \"BR-CREDIT\",\n          \"checkType\": \"ConsumerCredit\",\n          \"numericBureauScore\": 800\n        },\n        {\n          \"bureauResponseId\": \"BR-PEPS\",\n          \"checkType\": \"Compliance\",\n          \"isPEPsMatch\": false\n        }\n      ]\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('party credit eligibility resolves to APPROVE', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.parties[0].decisions.creditEligibility).to.eql('APPROVE');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Evaluate \u2014 Chaos: inject HTTP 503",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Chaos-Inject",
+                "value": "503",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{decisionServiceBaseUrl}}/v1/applications/evaluate",
+              "host": [
+                "{{decisionServiceBaseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "applications",
+                "evaluate"
+              ]
+            },
+            "description": "X-Chaos-Inject is a test-only fault-injection hook (DecisionController, gated behind cos.chaos.enabled, OFF by default) used to exercise the orchestrator's own DRS error-handling without a proxy in front of DRS. `X-Chaos-Inject: 503` returns that HTTP status instead of evaluating.\n\nStart DRS with the property enabled to see this fire: `./gradlew :cos-decision-service:bootRun --args='--cos.chaos.enabled=true'`. With the default (disabled) config this returns a normal 200 instead \u2014 the header is simply ignored.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"applicationId\": \"APP-1\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('returns the injected status when chaos is enabled', () => {",
+                  "    if (pm.response.code !== 200) {",
+                  "        pm.expect(pm.response.code).to.eql(503);",
+                  "    } else {",
+                  "        console.log('cos.chaos.enabled is false on this server \u2014 header was ignored, got 200 as normal');",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Evaluate \u2014 Chaos: inject timeout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Chaos-Inject",
+                "value": "timeout",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{decisionServiceBaseUrl}}/v1/applications/evaluate",
+              "host": [
+                "{{decisionServiceBaseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "applications",
+                "evaluate"
+              ]
+            },
+            "description": "Same fault-injection hook as the 503 example, but `X-Chaos-Inject: timeout` sleeps for 30 seconds \u2014 long enough to trip the orchestrator's read timeout when DRS is called through cos-orchestration. Only meaningful with cos.chaos.enabled=true on this server; raise this request's timeout setting in Postman if you want to see the 30s sleep through to completion rather than Postman's own request timeout firing first.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"applicationId\": \"APP-1\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "cos-orchestration",
+      "item": [
+        {
+          "name": "Originate \u2014 Fresh consumer, FULL_ORIGINATION (full external-data cycle)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{orchestrationBaseUrl}}/v1/applications/originate",
+              "host": [
+                "{{orchestrationBaseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "applications",
+                "originate"
+              ]
+            },
+            "description": "The showcase's main entry point (Process Workbook: \"Triggered by an inbound REST request to the COS origination API\"). A brand-new consumer application with no bureau data yet: the orchestrator detects everything is missing, calls Northgate KYC, Meridian (ConsumerCredit), Sentinel (Compliance) and Clearbank (BankCheck) via the bureau mocks, feeds the results back into DRS, and resolves routing in a second DRS cycle. Mirrors OrchestrationEndToEndTest#freshConsumerApplicationResolvesThroughTheExternalDataRequiredCycle (identification 8001015009087 and account ACCT-GOOD both hit the bureau mocks' default success stubs).\n\nPrerequisites \u2014 all three need to be running:\n  1. Bureau mocks: `./gradlew :cos-bureau-mocks:run` (or run com.cos.mocks.BureauMockServer's main method) \u2014 listens on :9561\n  2. cos-decision-service: `./gradlew :cos-decision-service:bootRun` \u2014 listens on :8081\n  3. cos-orchestration: `./gradlew :cos-orchestration:bootRun` \u2014 listens on :8082 (this request's target)",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"applicationId\": \"APP-E2E-1\",\n  \"applicationTimestamp\": \"2026-11-14T09:00:00\",\n  \"channel\": \"Online\",\n  \"countryCode\": \"GB\",\n  \"requestType\": \"FULL_ORIGINATION\",\n  \"customerType\": \"Consumer\",\n  \"hasCreditApproval\": false,\n  \"parties\": [\n    {\n      \"partyId\": \"P1\",\n      \"partyRole\": \"Applicant\",\n      \"partyType\": \"Consumer\",\n      \"person\": {\n        \"firstName\": \"Jane\",\n        \"lastName\": \"Doe\",\n        \"dateOfBirth\": \"1990-01-01\",\n        \"nationality\": \"GB\"\n      },\n      \"identifications\": [\n        {\n          \"identificationType\": \"NationalID\",\n          \"reference\": \"8001015009087\"\n        }\n      ],\n      \"addresses\": [\n        {\n          \"addressType\": \"Residential\",\n          \"line1\": \"1 Example Street\",\n          \"city\": \"Sampleton\",\n          \"postalCode\": \"AB1 2CD\",\n          \"country\": \"GB\"\n        }\n      ],\n      \"bankAccounts\": [\n        {\n          \"accountType\": \"Current\",\n          \"accountHolderName\": \"Jane Doe\",\n          \"bankName\": \"Example Bank\",\n          \"accountNumber\": \"ACCT-GOOD\",\n          \"branchCode\": \"123456\",\n          \"isPrimary\": true\n        }\n      ]\n    }\n  ],\n  \"productRequests\": [\n    {\n      \"productRequestId\": \"PR1\",\n      \"productCode\": \"PERSONAL_LOAN\",\n      \"requestedAmount\": 5000,\n      \"termMonths\": 24\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('application resolves past EXTERNAL_DATA_REQUIRED', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.decisions.applicationRouting).to.not.eql('EXTERNAL_DATA_REQUIRED');",
+                  "});",
+                  "pm.test('all 4 bureau check types were gathered', () => {",
+                  "    const json = pm.response.json();",
+                  "    const checkTypes = json.parties[0].bureauResponses.map(r => r.checkType);",
+                  "    ['KYC', 'ConsumerCredit', 'Compliance', 'BankCheck'].forEach(t => {",
+                  "        pm.expect(checkTypes).to.include(t);",
+                  "    });",
+                  "});",
+                  "pm.test('resolved in exactly 2 DRS cycles (1 to discover missing data, 1 to route)', () => {",
+                  "    pm.expect(pm.response.json().drsCycleCount).to.eql(2);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Originate \u2014 Invalid payload rejected without calling DRS or bureaus",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{orchestrationBaseUrl}}/v1/applications/originate",
+              "host": [
+                "{{orchestrationBaseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "applications",
+                "originate"
+              ]
+            },
+            "description": "An application missing all core fields fails the orchestrator's own request validation (Process Workbook's \"Validate Request Payload\" gateway) before it ever calls DRS or a bureau \u2014 no network dependency on cos-decision-service or the bureau mocks needed for this one. Every error carries code VAL01 (missing core field). Mirrors OrchestrationEndToEndTest#invalidApplicationIsRejectedWithoutCallingDrsOrBureaus.\n\nOther validation codes worth trying by hand: VAL02 (consumer applicant with no `person`, or a business application with no linked representative) and VAL03 (empty productRequests, or a non-positive requestedAmount).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"applicationId\": \"APP-INVALID\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200 (rejection is a normal response, not an HTTP error)', () => {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('application status is REJECTED with only VAL01 errors', () => {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.status).to.eql('REJECTED');",
+                  "    pm.expect(json.errors.every(e => e.code === 'VAL01')).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "cos-bureau-mocks (direct stub calls)",
+      "item": [
+        {
+          "name": "Northgate KYC \u2014 Individual Verification (match)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{bureauMocksBaseUrl}}/v1/individuals/verify",
+              "host": [
+                "{{bureauMocksBaseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "individuals",
+                "verify"
+              ]
+            },
+            "description": "Direct call to the Northgate Identity Services individual-verification stub (Integration Workbook: \"Northgate KYC API\"). Any body not keyed to a special scenario hits the default MATCH stub. Request shape mirrors NorthgateKycClient's wire format exactly.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestId\": \"REQ-KYC-1\",\n  \"subject\": {\n    \"firstName\": \"Jane\",\n    \"lastName\": \"Doe\",\n    \"dateOfBirth\": \"1990-01-01\",\n    \"nationality\": \"GB\",\n    \"identification\": {\n      \"type\": \"NationalID\",\n      \"number\": \"8001015009087\",\n      \"issuingCountry\": \"GB\"\n    },\n    \"address\": {\n      \"line1\": \"1 Example Street\",\n      \"city\": \"Sampleton\",\n      \"postalCode\": \"AB1 2CD\",\n      \"country\": \"GB\"\n    }\n  },\n  \"consentReference\": \"APP-E2E-1\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('match outcome is MATCH', () => {",
+                  "    pm.expect(pm.response.json().result.matchOutcome).to.eql('MATCH');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Northgate KYC \u2014 Individual Verification (no match)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{bureauMocksBaseUrl}}/v1/individuals/verify",
+              "host": [
+                "{{bureauMocksBaseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "individuals",
+                "verify"
+              ]
+            },
+            "description": "Same endpoint, but `subject.identification.number` of exactly \"NOMATCH0001\" is a special scenario key in the stub mappings (northgate-kyc/02-no-match.json) that forces a NO_MATCH / INVALID result \u2014 useful for exercising DRS's customerKYCStatus=DECLINE path.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestId\": \"REQ-KYC-2\",\n  \"subject\": {\n    \"firstName\": \"John\",\n    \"lastName\": \"Smith\",\n    \"dateOfBirth\": \"1985-05-05\",\n    \"nationality\": \"GB\",\n    \"identification\": {\n      \"type\": \"NationalID\",\n      \"number\": \"NOMATCH0001\",\n      \"issuingCountry\": \"GB\"\n    },\n    \"address\": {\n      \"line1\": \"2 Example Street\",\n      \"city\": \"Sampleton\",\n      \"postalCode\": \"AB1 2CD\",\n      \"country\": \"GB\"\n    }\n  },\n  \"consentReference\": \"APP-NOMATCH-1\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('match outcome is NO_MATCH', () => {",
+                  "    pm.expect(pm.response.json().result.matchOutcome).to.eql('NO_MATCH');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Northgate KYB \u2014 Company Verification (match)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{bureauMocksBaseUrl}}/v1/companies/verify",
+              "host": [
+                "{{bureauMocksBaseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "companies",
+                "verify"
+              ]
+            },
+            "description": "Direct call to the Northgate company-verification (KYB) stub. Request shape mirrors NorthgateKybClient's wire format.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"requestId\": \"REQ-KYB-1\",\n  \"subject\": {\n    \"legalName\": \"Example Trading Ltd\",\n    \"registrationNumber\": \"01234567\",\n    \"registrationCountry\": \"GB\",\n    \"companyType\": \"LTD\"\n  },\n  \"representative\": {\n    \"firstName\": \"Rep\",\n    \"lastName\": \"Resentative\",\n    \"dateOfBirth\": \"1980-01-01\",\n    \"identificationNumber\": \"REP-001\"\n  },\n  \"consentReference\": \"APP-BIZ-1\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('registration status is ACTIVE', () => {",
+                  "    pm.expect(pm.response.json().result.registrationStatus).to.eql('ACTIVE');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Meridian Bureau \u2014 Credit Report",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{bureauMocksBaseUrl}}/v2/credit-reports",
+              "host": [
+                "{{bureauMocksBaseUrl}}"
+              ],
+              "path": [
+                "v2",
+                "credit-reports"
+              ]
+            },
+            "description": "Direct call to the Meridian consumer/commercial credit-report stub. Request shape mirrors MeridianBureauClient's wire format.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subjectType\": \"Consumer\",\n  \"subject\": {\n    \"firstName\": \"Jane\",\n    \"lastName\": \"Doe\",\n    \"dateOfBirth\": \"1990-01-01\",\n    \"nationalIdNumber\": \"8001015009087\"\n  },\n  \"reportType\": \"FULL\",\n  \"reference\": \"APP-E2E-1\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('record was found', () => {",
+                  "    pm.expect(pm.response.json().recordFound).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Sentinel Compliance \u2014 Screening (clean)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{bureauMocksBaseUrl}}/v1/screen",
+              "host": [
+                "{{bureauMocksBaseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "screen"
+              ]
+            },
+            "description": "Direct call to the Sentinel PEPs/sanctions/watchlist screening stub. Request shape mirrors SentinelComplianceClient's wire format.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subject\": {\n    \"fullName\": \"Jane Doe\",\n    \"dateOfBirth\": \"1990-01-01\",\n    \"nationality\": \"GB\",\n    \"subjectType\": \"Individual\"\n  },\n  \"lists\": [\n    \"PEP\",\n    \"SANCTIONS\"\n  ],\n  \"reference\": \"APP-E2E-1\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('no overall match', () => {",
+                  "    pm.expect(pm.response.json().overallMatch).to.be.false;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Sentinel Compliance \u2014 Screening (PEP match)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{bureauMocksBaseUrl}}/v1/screen",
+              "host": [
+                "{{bureauMocksBaseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "screen"
+              ]
+            },
+            "description": "Same endpoint, but `subject.fullName` of exactly \"PEP Match Subject\" is a special scenario key (sentinel/02-pep-match.json) that forces a PEP hit \u2014 useful for exercising DRS's customerPEPsStatus=REFER path.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subject\": {\n    \"fullName\": \"PEP Match Subject\",\n    \"dateOfBirth\": \"1970-02-02\",\n    \"nationality\": \"GB\",\n    \"subjectType\": \"Individual\"\n  },\n  \"lists\": [\n    \"PEP\",\n    \"SANCTIONS\"\n  ],\n  \"reference\": \"APP-PEP-1\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('overall match is true', () => {",
+                  "    pm.expect(pm.response.json().overallMatch).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Clearbank Verification \u2014 Account Check (full match)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{bureauMocksBaseUrl}}/v1/account-checks",
+              "host": [
+                "{{bureauMocksBaseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "account-checks"
+              ]
+            },
+            "description": "Direct call to the Clearbank bank-account verification stub. Any account number not keyed to a special scenario (BC02\u2013BC06) hits the default BC01 full-match stub. Request shape mirrors ClearbankVerificationClient's wire format.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountHolderName\": \"Jane Doe\",\n  \"bankName\": \"Example Bank\",\n  \"accountNumber\": \"ACCT-GOOD\",\n  \"branchCode\": \"123456\",\n  \"reference\": \"APP-E2E-1\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('result code is BC01 (full match)', () => {",
+                  "    pm.expect(pm.response.json().resultCode).to.eql('BC01');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Clearbank Verification \u2014 Account Check (not found)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{bureauMocksBaseUrl}}/v1/account-checks",
+              "host": [
+                "{{bureauMocksBaseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "account-checks"
+              ]
+            },
+            "description": "Same endpoint, but accountNumber \"BC04-ACCT\" is a special scenario key (clearbank/04-bc04-account-not-found.json) that forces a NOT_FOUND result.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountHolderName\": \"Jane Doe\",\n  \"bankName\": \"Example Bank\",\n  \"accountNumber\": \"BC04-ACCT\",\n  \"branchCode\": \"123456\",\n  \"reference\": \"APP-NOTFOUND-1\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('result code is BC04 (not found)', () => {",
+                  "    pm.expect(pm.response.json().resultCode).to.eql('BC04');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Lumen Document Intelligence \u2014 Analyze Document",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{bureauMocksBaseUrl}}/v1/documents/analyze",
+              "host": [
+                "{{bureauMocksBaseUrl}}"
+              ],
+              "path": [
+                "v1",
+                "documents",
+                "analyze"
+              ]
+            },
+            "description": "Direct call to the Lumen document-analysis stub (payslip/ID extraction). Not yet wired into cos-orchestration (no DocumentExtraction field on Application in the BOM yet, per DecisionRulesService's class comment) \u2014 this request exercises the mock directly.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"documentId\": \"DOC-1\",\n  \"documentType\": \"Payslip\",\n  \"content\": \"<base64-or-reference-placeholder>\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('classified as a Payslip', () => {",
+                  "    pm.expect(pm.response.json().classification.documentType).to.eql('Payslip');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
